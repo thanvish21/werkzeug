@@ -466,7 +466,6 @@ class Response(_SansIOResponse):
         """
         headers = Headers(self.headers)
         location: str | None = None
-        content_location: str | None = None
         content_length: str | int | None = None
         status = self.status_code
 
@@ -477,35 +476,24 @@ class Response(_SansIOResponse):
             ikey = key.lower()
             if ikey == "location":
                 location = value
-            elif ikey == "content-location":
-                content_location = value
             elif ikey == "content-length":
                 content_length = value
 
-        if location is not None:
-            location = iri_to_uri(location)
+        if location is not None and self.autocorrect_location_header:
+            import warnings
 
-            if self.autocorrect_location_header:
-                import warnings
+            from .request import Request
 
-                from .request import Request
-
-                warnings.warn(
-                    "Setting 'Response.autocorrect_location_header' is deprecated"
-                    " and will be removed in Werkzeug 4.0. Set 'response.location'"
-                    " directly if you need a specific format.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                # Make the location header an absolute URL.
-                current_url = iri_to_uri(Request(environ).base_url)
-                location = urljoin(current_url, location)
-
-            headers["Location"] = location
-
-        # make sure the content location is a URL
-        if content_location is not None:
-            headers["Content-Location"] = iri_to_uri(content_location)
+            warnings.warn(
+                "Setting 'Response.autocorrect_location_header' is deprecated"
+                " and will be removed in Werkzeug 4.0. Set 'response.location'"
+                " directly if you need a specific format.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # Make the location header an absolute URL.
+            current_url = iri_to_uri(Request(environ).base_url)
+            headers["Location"] = urljoin(current_url, location)
 
         if 100 <= status < 200 or status == 204:
             # Per section 3.3.2 of RFC 7230, "a server MUST NOT send a

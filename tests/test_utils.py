@@ -36,7 +36,8 @@ def test_redirect(url: str, code: int | None, expect: str) -> None:
         resp = utils.redirect(url, code)
         assert resp.status_code == code
 
-    assert resp.headers["Location"] == url
+    assert resp.location == url
+    assert resp.headers["Location"] == expect
     assert resp.get_wsgi_headers(environ)["Location"] == expect
     assert resp.get_data(as_text=True).count(url) == 2
 
